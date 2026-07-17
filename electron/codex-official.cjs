@@ -95,8 +95,8 @@ class CodexAppServerClient {
     await this.#sendRequest('initialize', {
       clientInfo: {
         name: 'codex-quota-panel-9',
-        title: 'Codex Quota Panel 9',
-        version: '1.1.0',
+        title: 'Codex Quota Panel',
+        version: '1.2.0',
       },
       capabilities: {},
     });
@@ -235,10 +235,10 @@ function normalizeResetCredits(rateResult) {
   };
 }
 
-function localDateKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+function usageDateKey(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -254,7 +254,7 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
   const summary = usageResult?.summary ?? null;
   const dailyBuckets = usageResult?.dailyUsageBuckets ?? usageResult?.daily_usage_buckets ?? [];
   const todayBucket = Array.isArray(dailyBuckets)
-    ? dailyBuckets.find((bucket) => (bucket.startDate ?? bucket.start_date) === localDateKey(now))
+    ? dailyBuckets.find((bucket) => (bucket.startDate ?? bucket.start_date) === usageDateKey(now))
     : null;
   const todayTokens = numberFrom(todayBucket, 'tokens');
   const lifetimeTokens = numberFrom(summary, 'lifetimeTokens', 'lifetime_tokens');

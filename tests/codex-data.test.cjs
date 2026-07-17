@@ -57,11 +57,19 @@ test('normalizeOfficialData uses account usage and banked resets without duplica
   assert.equal(data.limits.length, 1);
 });
 
-test('normalizeOfficialData treats a missing current-day bucket as an official zero', () => {
+test('normalizeOfficialData uses the official UTC usage day across the Asia/Shanghai midnight boundary', () => {
   const data = normalizeOfficialData(null, {
     summary: { lifetimeTokens: 42 },
     dailyUsageBuckets: [{ startDate: '2026-07-17', tokens: 10 }],
-  }, { now: new Date(2026, 6, 18, 1, 0, 0) });
-  assert.equal(data.today.total, 0);
+  }, { now: new Date('2026-07-17T16:30:00Z') });
+  assert.equal(data.today.total, 10);
   assert.equal(data.cumulative.total, 42);
+});
+
+test('normalizeOfficialData does not reuse a stale official daily bucket', () => {
+  const data = normalizeOfficialData(null, {
+    summary: { lifetimeTokens: 42 },
+    dailyUsageBuckets: [{ startDate: '2026-07-17', tokens: 10 }],
+  }, { now: new Date('2026-07-18T09:00:00Z') });
+  assert.equal(data.today.total, 0);
 });

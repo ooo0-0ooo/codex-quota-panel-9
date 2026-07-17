@@ -4,9 +4,8 @@
   background: transparent;
   font-synthesis: none;
   --panel-width: 560px;
-  --panel-height: 592px;
   --content-width: 496px;
-  --surface: rgba(235, 235, 235, 0.6);
+  --surface: #f3f3f3;
   --text-primary: #333;
   --text-secondary: #666;
   --shadow-dark: rgba(138, 138, 138, 0.25);
@@ -19,7 +18,7 @@
 html,
 body {
   width: 584px;
-  height: 616px;
+  min-height: 0;
   margin: 0;
   overflow: hidden;
   background: transparent;
@@ -35,14 +34,12 @@ input { font: inherit; }
   flex-direction: column;
   gap: 22px;
   width: var(--panel-width);
-  height: var(--panel-height);
+  height: auto;
   margin: 12px;
   padding: 28px 32px 30px;
   overflow: visible;
   border-radius: 20px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(221, 221, 221, 0.26)),
-    var(--surface);
+  background: linear-gradient(rgba(235, 235, 235, 0.6), rgba(235, 235, 235, 0.6)), #fff;
   box-shadow:
     -4px -4px 9px rgba(255, 255, 255, 0.92),
     7px 7px 12px rgba(179, 179, 179, 0.42);
@@ -112,9 +109,7 @@ h2 {
 }
 
 .card {
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.26), rgba(224, 224, 224, 0.18)),
-    var(--surface);
+  background: linear-gradient(rgba(235, 235, 235, 0.6), rgba(235, 235, 235, 0.6)), #fff;
   border-radius: 18px;
 }
 
@@ -297,15 +292,6 @@ h2 {
   font-weight: 700;
   line-height: 40px;
   letter-spacing: -0.4px;
-}
-
-.token-line .token-meta {
-  overflow: hidden;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 16px;
-  text-overflow: ellipsis;
 }
 
 .context-menu {

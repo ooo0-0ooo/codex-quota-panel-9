@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, nativeImage, screen, Tray } = require('electron');
 const path = require('node:path');
 const { collectCodexData: collectLocalCodexData } = require('./codex-data.cjs');
 const { CodexAppServerClient, collectOfficialCodexData } = require('./codex-official.cjs');
@@ -9,7 +9,8 @@ let isQuitting = false;
 
 const APP_ID = 'com.ooo0-0ooo.codex-quota-panel-9';
 const WINDOW_WIDTH = 584;
-const WINDOW_HEIGHT = 616;
+const INITIAL_WINDOW_HEIGHT = 540;
+const APP_ICON = path.join(__dirname, '..', 'src', 'assets', 'logo.png');
 const officialClient = new CodexAppServerClient();
 
 async function getCodexData() {
@@ -31,33 +32,36 @@ async function getCodexData() {
   }
 }
 
-function createTrayIcon() {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <rect width="32" height="32" rx="8" fill="#dedede"/>
-      <path d="M8 10h16M8 16h11M8 22h7" stroke="#333" stroke-width="2.5" stroke-linecap="round"/>
-      <circle cx="23" cy="22" r="4" fill="#555"/>
-    </svg>`;
-  return nativeImage.createFromDataURL(
-    `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`,
-  );
+function applicationIcon(size) {
+  const icon = nativeImage.createFromPath(APP_ICON);
+  return size && !icon.isEmpty() ? icon.resize({ width: size, height: size }) : icon;
+}
+
+function resizeWindowToContent(requestedHeight) {
+  if (!mainWindow || mainWindow.isDestroyed()) return null;
+  const height = Number(requestedHeight);
+  if (!Number.isFinite(height)) return mainWindow.getContentSize()[1];
+  const display = screen.getDisplayMatching(mainWindow.getBounds());
+  const maxHeight = Math.max(420, display.workAreaSize.height - 24);
+  const nextHeight = Math.max(420, Math.min(Math.ceil(height), maxHeight));
+  mainWindow.setContentSize(WINDOW_WIDTH, nextHeight);
+  return nextHeight;
 }
 
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: WINDOW_WIDTH,
-    height: WINDOW_HEIGHT,
+    height: INITIAL_WINDOW_HEIGHT,
     minWidth: WINDOW_WIDTH,
-    minHeight: WINDOW_HEIGHT,
     maxWidth: WINDOW_WIDTH,
-    maxHeight: WINDOW_HEIGHT,
     useContentSize: true,
     frame: false,
     transparent: true,
     resizable: false,
     maximizable: false,
     fullscreenable: false,
-    title: 'Codex Quota Panel 9',
+    title: 'Codex Quota Panel',
+    icon: applicationIcon(),
     show: false,
     alwaysOnTop: true,
     skipTaskbar: false,
@@ -81,8 +85,8 @@ function createWindow() {
 }
 
 function createTray() {
-  tray = new Tray(createTrayIcon());
-  tray.setToolTip('Codex Quota Panel 9');
+  tray = new Tray(applicationIcon(32));
+  tray.setToolTip('Codex Quota Panel');
   const rebuildMenu = () => {
     tray.setContextMenu(
       Menu.buildFromTemplate([
@@ -143,4 +147,5 @@ ipcMain.handle('window:set-always-on-top', (_event, value) => {
   mainWindow.setAlwaysOnTop(Boolean(value));
   return mainWindow.isAlwaysOnTop();
 });
+ipcMain.handle('window:set-content-height', (_event, height) => resizeWindowToContent(height));
 ipcMain.handle('codex:get-data', () => getCodexData());

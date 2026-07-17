@@ -1,4 +1,4 @@
-# Codex Quota Panel 9
+# Codex Quota Panel
 
 一个按照 Figma「Codex 额度面板 / 9」实现的 Windows 桌面面板。界面使用灰色轻拟态风格，展示官方账户的每周使用限额、可用额度重置、今日 Token 和累计 Token。
 
@@ -6,11 +6,12 @@
 
 ## 功能
 
-- 560 × 592 有效像素的无边框轻拟态面板，适配 Windows 有效像素缩放
+- 560px 宽的无边框轻拟态面板，高度随实际重置卡片数量自动收缩
 - 12px 正文/说明文字、14px 正文强调和 22px 标题，遵循 Windows 字体可读性建议
 - 直接调用官方 `account/rateLimits/read`，同步每周限额、重置时间和 earned reset 明细
 - 直接调用官方 `account/usage/read`，同步账户级今日 Token 与累计 Token
 - Windows 系统托盘驻留，点击托盘图标显示或隐藏
+- 安装包、任务栏和系统托盘统一使用 Figma 导出的蓝底灯塔 logo
 - 窗口可拖动、默认始终置顶
 - 每 60 秒自动刷新，也可按 `F5` 或右键手动刷新
 - 官方服务暂不可用时，只读本机 `%USERPROFILE%\.codex\sessions` 作为明确标注的降级数据

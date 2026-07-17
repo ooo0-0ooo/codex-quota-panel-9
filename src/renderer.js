@@ -1,11 +1,10 @@
 const elements = {
+  panel: document.querySelector('.quota-panel'),
   weeklyReset: document.querySelector('#weekly-reset'),
   remaining: document.querySelector('#remaining'),
   progress: document.querySelector('#progress-value'),
   todayTokens: document.querySelector('#today-tokens'),
-  todayCost: document.querySelector('#today-cost'),
   totalTokens: document.querySelector('#total-tokens'),
-  totalCost: document.querySelector('#total-cost'),
   resetList: document.querySelector('#reset-list'),
   close: document.querySelector('#close-button'),
   menu: document.querySelector('#context-menu'),
@@ -17,17 +16,6 @@ function compact(value) {
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(number);
-}
-
-function exact(value) {
-  return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
-}
-
-function compactChinese(value) {
-  return new Intl.NumberFormat('zh-CN', {
-    notation: 'compact',
-    maximumFractionDigits: 2,
-  }).format(Number(value) || 0);
 }
 
 function formatReset(timestamp) {
@@ -48,30 +36,44 @@ function formatExpiry(timestamp) {
   }).format(new Date(timestamp * 1000))} 到期`;
 }
 
-function renderResetCards(credits, availableCount) {
-  const rows = [...(credits ?? [])];
-  while (rows.length < Math.min(availableCount ?? 0, 4)) {
-    rows.push({ title: 'Full reset', expiresAt: 0, status: 'available', detailPending: true });
-  }
-  while (rows.length < 4) rows.push(null);
+function syncWindowHeight() {
+  requestAnimationFrame(() => {
+    const panelHeight = Math.ceil(elements.panel.getBoundingClientRect().height);
+    window.codexWidget.setContentHeight(panelHeight + 24);
+  });
+}
 
-  elements.resetList.replaceChildren(...rows.slice(0, 4).map((credit) => {
+function renderResetCards(credits, availableCount) {
+  const details = Array.isArray(credits) ? credits : [];
+  const reportedCount = Number.isFinite(Number(availableCount))
+    ? Math.max(0, Math.floor(Number(availableCount)))
+    : details.length;
+  const rows = details.slice(0, reportedCount);
+
+  while (rows.length < reportedCount) {
+    rows.push({
+      title: 'Full reset',
+      expiresAt: 0,
+      status: 'available',
+      detailPending: true,
+    });
+  }
+
+  elements.resetList.replaceChildren(...rows.map((credit) => {
     const card = document.createElement('article');
     card.className = 'card reset-card';
 
     const copy = document.createElement('div');
     copy.className = 'reset-copy';
     const title = document.createElement('strong');
-    title.textContent = credit?.title || '暂无更多重置';
+    title.textContent = credit.title || 'Full reset';
     const date = document.createElement('span');
-    date.textContent = credit
-      ? formatExpiry(credit.expiresAt)
-      : '以 Codex 官方账户为准';
+    date.textContent = formatExpiry(credit.expiresAt);
 
     const badge = document.createElement('span');
     badge.className = 'reset-button';
-    badge.textContent = credit ? '可用' : '—';
-    badge.setAttribute('aria-label', credit ? '此额度重置可用' : '暂无可用额度重置');
+    badge.textContent = '可用';
+    badge.setAttribute('aria-label', '此额度重置可用');
 
     copy.append(title, date);
     card.append(copy, badge);
@@ -85,7 +87,6 @@ function render(data) {
   const officialTokens = data.tokenSource === 'official'
     || data.source === 'official-codex-app-server';
   const tokenSource = officialTokens ? '官方同步' : '本机降级';
-  const tokenSourceShort = officialTokens ? '官方' : '本机';
 
   elements.weeklyReset.textContent = weekly
     ? formatReset(weekly.resetsAt)
@@ -94,14 +95,11 @@ function render(data) {
   elements.progress.style.width = `${remaining}%`;
 
   elements.todayTokens.textContent = compact(data.today?.total);
-  elements.todayCost.textContent = `${tokenSourceShort} ${compactChinese(data.today?.total)}`;
-  elements.todayCost.title = `精确值 ${exact(data.today?.total)}`;
   elements.totalTokens.textContent = compact(data.cumulative?.total);
-  elements.totalCost.textContent = `${tokenSourceShort} ${compactChinese(data.cumulative?.total)}`;
-  elements.totalCost.title = `精确值 ${exact(data.cumulative?.total)}`;
 
   renderResetCards(data.resetCredits, data.resetCreditCount);
   document.body.title = `${data.sourceLabel ?? 'Codex 数据'} · ${tokenSource}`;
+  syncWindowHeight();
 }
 
 function renderError() {
@@ -109,10 +107,9 @@ function renderError() {
   elements.remaining.textContent = '未同步';
   elements.progress.style.width = '0%';
   elements.todayTokens.textContent = '—';
-  elements.todayCost.textContent = '等待同步';
   elements.totalTokens.textContent = '—';
-  elements.totalCost.textContent = '等待同步';
   renderResetCards([], 0);
+  syncWindowHeight();
 }
 
 async function refresh() {

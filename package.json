@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-panel-9",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A Windows Codex quota panel synchronized through the official Codex app-server.",
   "type": "module",
   "main": "electron/main.cjs",
@@ -12,12 +12,13 @@
     "dev": "electron .",
     "test": "node --test",
     "capture": "electron tests/capture.cjs",
+    "generate:icon": "electron scripts/generate-icon.cjs",
     "build": "electron-builder --win nsis portable --publish never",
     "build:dir": "electron-builder --win dir"
   },
   "build": {
     "appId": "com.ooo0-0ooo.codex-quota-panel-9",
-    "productName": "Codex Quota Panel 9",
+    "productName": "Codex Quota Panel",
     "asar": true,
     "directories": {
       "output": "dist"
@@ -28,6 +29,7 @@
       "package.json"
     ],
     "win": {
+      "icon": "src/assets/logo.png",
       "target": [
         "nsis",
         "portable"
