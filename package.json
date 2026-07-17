@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-panel-9",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A lightweight Windows desktop widget inspired by the Codex quota panel design.",
   "type": "module",
   "main": "electron/main.cjs",

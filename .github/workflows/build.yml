@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -23,4 +23,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: Codex-Quota-Panel-9-Windows
-          path: dist/*
+          path: dist/*.exe
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ github.ref_name }}" dist/*.exe --title "Codex Quota Panel 9 ${{ github.ref_name }}" --generate-notes --verify-tag
