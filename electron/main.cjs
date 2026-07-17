@@ -1,12 +1,35 @@
 const { app, BrowserWindow, ipcMain, Menu, nativeImage, Tray } = require('electron');
 const path = require('node:path');
-const { collectCodexData } = require('./codex-data.cjs');
+const { collectCodexData: collectLocalCodexData } = require('./codex-data.cjs');
+const { CodexAppServerClient, collectOfficialCodexData } = require('./codex-official.cjs');
 
 let mainWindow;
 let tray;
 let isQuitting = false;
 
 const APP_ID = 'com.ooo0-0ooo.codex-quota-panel-9';
+const WINDOW_WIDTH = 584;
+const WINDOW_HEIGHT = 616;
+const officialClient = new CodexAppServerClient();
+
+async function getCodexData() {
+  try {
+    return await collectOfficialCodexData(officialClient, {
+      localFallback: () => collectLocalCodexData(),
+    });
+  } catch (error) {
+    const local = await collectLocalCodexData();
+    return {
+      ...local,
+      source: 'local-codex-sessions-fallback',
+      sourceLabel: '本机日志降级',
+      tokenSource: 'local',
+      resetCredits: [],
+      resetCreditCount: 0,
+      syncError: error.message,
+    };
+  }
+}
 
 function createTrayIcon() {
   const svg = `
@@ -22,12 +45,13 @@ function createTrayIcon() {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 314,
-    height: 326,
-    minWidth: 314,
-    minHeight: 326,
-    maxWidth: 314,
-    maxHeight: 326,
+    width: WINDOW_WIDTH,
+    height: WINDOW_HEIGHT,
+    minWidth: WINDOW_WIDTH,
+    minHeight: WINDOW_HEIGHT,
+    maxWidth: WINDOW_WIDTH,
+    maxHeight: WINDOW_HEIGHT,
+    useContentSize: true,
     frame: false,
     transparent: true,
     resizable: false,
@@ -106,6 +130,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', (event) => event.preventDefault());
 app.on('before-quit', () => {
   isQuitting = true;
+  officialClient.stop();
 });
 
 ipcMain.handle('window:hide', () => mainWindow.hide());
@@ -118,4 +143,4 @@ ipcMain.handle('window:set-always-on-top', (_event, value) => {
   mainWindow.setAlwaysOnTop(Boolean(value));
   return mainWindow.isAlwaysOnTop();
 });
-ipcMain.handle('codex:get-data', () => collectCodexData());
+ipcMain.handle('codex:get-data', () => getCodexData());

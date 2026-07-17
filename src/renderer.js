@@ -19,8 +19,19 @@ function compact(value) {
   }).format(number);
 }
 
+function exact(value) {
+  return new Intl.NumberFormat('zh-CN').format(Number(value) || 0);
+}
+
+function compactChinese(value) {
+  return new Intl.NumberFormat('zh-CN', {
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(Number(value) || 0);
+}
+
 function formatReset(timestamp) {
-  if (!timestamp) return '重置时间未提供';
+  if (!timestamp) return '重置时间暂未提供';
   return `将于 ${new Intl.DateTimeFormat('zh-CN', {
     month: 'numeric',
     day: 'numeric',
@@ -29,31 +40,39 @@ function formatReset(timestamp) {
   }).format(new Date(timestamp * 1000))} 重置`;
 }
 
-function limitTitle(limit) {
-  if (!limit) return '暂无更多限额';
-  if (limit.windowMinutes >= 10080) return '每周限额';
-  if (limit.windowMinutes >= 1440) return `${Math.round(limit.windowMinutes / 1440)} 天限额`;
-  if (limit.windowMinutes >= 60) return `${Math.round(limit.windowMinutes / 60)} 小时限额`;
-  return limit.name || 'Codex 限额';
+function formatExpiry(timestamp) {
+  if (!timestamp) return '到期时间待官方返回';
+  return `将于 ${new Intl.DateTimeFormat('zh-CN', {
+    month: 'numeric',
+    day: 'numeric',
+  }).format(new Date(timestamp * 1000))} 到期`;
 }
 
-function renderLimitCards(limits) {
-  const rows = [...limits];
+function renderResetCards(credits, availableCount) {
+  const rows = [...(credits ?? [])];
+  while (rows.length < Math.min(availableCount ?? 0, 4)) {
+    rows.push({ title: 'Full reset', expiresAt: 0, status: 'available', detailPending: true });
+  }
   while (rows.length < 4) rows.push(null);
-  elements.resetList.replaceChildren(...rows.slice(0, 4).map((limit) => {
+
+  elements.resetList.replaceChildren(...rows.slice(0, 4).map((credit) => {
     const card = document.createElement('article');
     card.className = 'card reset-card';
+
     const copy = document.createElement('div');
     copy.className = 'reset-copy';
-    const title = document.createElement('span');
-    title.textContent = limitTitle(limit);
+    const title = document.createElement('strong');
+    title.textContent = credit?.title || '暂无更多重置';
     const date = document.createElement('span');
-    date.textContent = limit ? formatReset(limit.resetsAt) : 'Codex 未提供该项数据';
-    const badge = document.createElement('button');
-    badge.className = 'reset-button no-drag';
-    badge.type = 'button';
-    badge.disabled = true;
-    badge.textContent = limit ? `${Math.round(100 - limit.usedPercent)}%` : '—';
+    date.textContent = credit
+      ? formatExpiry(credit.expiresAt)
+      : '以 Codex 官方账户为准';
+
+    const badge = document.createElement('span');
+    badge.className = 'reset-button';
+    badge.textContent = credit ? '可用' : '—';
+    badge.setAttribute('aria-label', credit ? '此额度重置可用' : '暂无可用额度重置');
+
     copy.append(title, date);
     card.append(copy, badge);
     return card;
@@ -63,26 +82,37 @@ function renderLimitCards(limits) {
 function render(data) {
   const weekly = data.weekly;
   const remaining = weekly?.remainingPercent ?? 0;
-  elements.weeklyReset.textContent = weekly ? formatReset(weekly.resetsAt) : '等待 Codex 写入限额数据';
+  const officialTokens = data.tokenSource === 'official'
+    || data.source === 'official-codex-app-server';
+  const tokenSource = officialTokens ? '官方同步' : '本机降级';
+  const tokenSourceShort = officialTokens ? '官方' : '本机';
+
+  elements.weeklyReset.textContent = weekly
+    ? formatReset(weekly.resetsAt)
+    : '等待 Codex 官方限额数据';
   elements.remaining.textContent = weekly ? `剩余 ${Math.round(remaining)}%` : '未同步';
   elements.progress.style.width = `${remaining}%`;
-  elements.todayTokens.textContent = compact(data.today.total);
-  elements.todayCost.textContent = `输入 ${compact(data.today.input)}`;
-  elements.totalTokens.textContent = compact(data.cumulative.total);
-  elements.totalCost.textContent = `输出 ${compact(data.cumulative.output)}`;
-  renderLimitCards(data.limits ?? []);
-  document.body.title = `只读本机 Codex 数据 · 扫描 ${data.scannedSessions} 个会话`;
+
+  elements.todayTokens.textContent = compact(data.today?.total);
+  elements.todayCost.textContent = `${tokenSourceShort} ${compactChinese(data.today?.total)}`;
+  elements.todayCost.title = `精确值 ${exact(data.today?.total)}`;
+  elements.totalTokens.textContent = compact(data.cumulative?.total);
+  elements.totalCost.textContent = `${tokenSourceShort} ${compactChinese(data.cumulative?.total)}`;
+  elements.totalCost.title = `精确值 ${exact(data.cumulative?.total)}`;
+
+  renderResetCards(data.resetCredits, data.resetCreditCount);
+  document.body.title = `${data.sourceLabel ?? 'Codex 数据'} · ${tokenSource}`;
 }
 
 function renderError() {
-  elements.weeklyReset.textContent = '未找到本机 Codex 数据';
+  elements.weeklyReset.textContent = 'Codex 官方数据暂不可用';
   elements.remaining.textContent = '未同步';
   elements.progress.style.width = '0%';
   elements.todayTokens.textContent = '—';
-  elements.todayCost.textContent = '输入 —';
+  elements.todayCost.textContent = '等待同步';
   elements.totalTokens.textContent = '—';
-  elements.totalCost.textContent = '输出 —';
-  renderLimitCards([]);
+  elements.totalCost.textContent = '等待同步';
+  renderResetCards([], 0);
 }
 
 async function refresh() {
@@ -110,9 +140,10 @@ document.addEventListener('contextmenu', async (event) => {
   event.preventDefault();
   const pin = elements.menu.querySelector('[data-action="pin"]');
   pin.textContent = (await window.codexWidget.getAlwaysOnTop()) ? '取消置顶' : '始终置顶';
-  elements.menu.style.left = `${Math.min(event.clientX, 214)}px`;
-  elements.menu.style.top = `${Math.min(event.clientY, 244)}px`;
   elements.menu.hidden = false;
+  const bounds = elements.menu.getBoundingClientRect();
+  elements.menu.style.left = `${Math.max(8, Math.min(event.clientX, innerWidth - bounds.width - 8))}px`;
+  elements.menu.style.top = `${Math.max(8, Math.min(event.clientY, innerHeight - bounds.height - 8))}px`;
 });
 
 document.addEventListener('click', async (event) => {
@@ -131,5 +162,4 @@ document.addEventListener('click', async (event) => {
 });
 
 refresh();
-setInterval(refresh, 30_000);
-
+setInterval(refresh, 60_000);

@@ -4,6 +4,7 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { collectCodexData, normalizeWindows } = require('../electron/codex-data.cjs');
+const { normalizeOfficialData } = require('../electron/codex-official.cjs');
 
 test('collectCodexData aggregates real token deltas without double counting snapshots', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-widget-'));
@@ -29,3 +30,38 @@ test('normalizeWindows returns the longest rate window first', () => {
   assert.equal(windows[0].windowMinutes, 10080);
 });
 
+test('normalizeOfficialData uses account usage and banked resets without duplicating the weekly limit', () => {
+  const data = normalizeOfficialData({
+    rateLimits: {
+      primary: { usedPercent: 6, windowDurationMins: 10080, resetsAt: 1784908717 },
+      secondary: null,
+    },
+    rateLimitResetCredits: {
+      availableCount: 3,
+      credits: [
+        { id: 'reset-1', title: 'Full reset', status: 'available', expiresAt: 1785108949 },
+        { id: 'reset-2', title: 'Full reset', status: 'available', expiresAt: 1786482506 },
+        { id: 'reset-3', title: 'Full reset', status: 'available', expiresAt: 1786556074 },
+      ],
+    },
+  }, {
+    summary: { lifetimeTokens: 651705306, peakDailyTokens: 106045423 },
+    dailyUsageBuckets: [{ startDate: '2026-07-17', tokens: 958077 }],
+  }, { now: new Date(2026, 6, 17, 12, 0, 0) });
+
+  assert.equal(data.weekly.remainingPercent, 94);
+  assert.equal(data.today.total, 958077);
+  assert.equal(data.cumulative.total, 651705306);
+  assert.equal(data.resetCreditCount, 3);
+  assert.equal(data.resetCredits[0].title, 'Full reset');
+  assert.equal(data.limits.length, 1);
+});
+
+test('normalizeOfficialData treats a missing current-day bucket as an official zero', () => {
+  const data = normalizeOfficialData(null, {
+    summary: { lifetimeTokens: 42 },
+    dailyUsageBuckets: [{ startDate: '2026-07-17', tokens: 10 }],
+  }, { now: new Date(2026, 6, 18, 1, 0, 0) });
+  assert.equal(data.today.total, 0);
+  assert.equal(data.cumulative.total, 42);
+});
