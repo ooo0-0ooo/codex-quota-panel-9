@@ -1,14 +1,81 @@
+const translations = {
+  zh: {
+    panelLabel: 'Codex 额度面板',
+    closeLabel: '隐藏到系统托盘',
+    weeklyLimit: '每周使用限额',
+    resetCredits: '使用限额重置',
+    tokenUsage: 'Token 用量',
+    todayToken: '今日 Token',
+    yesterdayToken: '昨日 Token',
+    totalToken: '累计 Token',
+    available: '可用',
+    availableLabel: '此额度重置可用',
+    refresh: '刷新真实数据',
+    pin: '始终置顶',
+    unpin: '取消置顶',
+    quit: '退出应用',
+    resetPending: '重置时间暂未提供',
+    expiryPending: '到期时间待官方返回',
+    waiting: '等待 Codex 官方限额数据',
+    unavailable: 'Codex 官方数据暂不可用',
+    unsynced: '未同步',
+    officialAndLocal: '官方累计 · 本机今日',
+    localOnly: '本机日志',
+    data: 'Codex 数据',
+  },
+  en: {
+    panelLabel: 'Codex quota panel',
+    closeLabel: 'Hide to system tray',
+    weeklyLimit: 'Weekly limit',
+    resetCredits: 'Reset credits',
+    tokenUsage: 'Token usage',
+    todayToken: 'Today Token',
+    yesterdayToken: 'Yesterday Token',
+    totalToken: 'All-time Token',
+    available: 'Available',
+    availableLabel: 'This reset credit is available',
+    refresh: 'Refresh data',
+    pin: 'Keep on top',
+    unpin: 'Unpin',
+    quit: 'Quit',
+    resetPending: 'Reset time unavailable',
+    expiryPending: 'Expiry pending',
+    waiting: 'Waiting for Codex quota data',
+    unavailable: 'Codex data is unavailable',
+    unsynced: 'Not synced',
+    officialAndLocal: 'Official total · Local today',
+    localOnly: 'Local logs',
+    data: 'Codex data',
+  },
+};
+
 const elements = {
   panel: document.querySelector('.quota-panel'),
+  language: document.querySelector('#language-button'),
+  close: document.querySelector('#close-button'),
+  weeklyTitle: document.querySelector('#weekly-title'),
   weeklyReset: document.querySelector('#weekly-reset'),
   remaining: document.querySelector('#remaining'),
   progress: document.querySelector('#progress-value'),
+  resetHeading: document.querySelector('#reset-heading'),
+  tokenHeading: document.querySelector('#token-heading'),
+  todayLabel: document.querySelector('#today-label'),
   todayTokens: document.querySelector('#today-tokens'),
+  totalLabel: document.querySelector('#total-label'),
   totalTokens: document.querySelector('#total-tokens'),
   resetList: document.querySelector('#reset-list'),
-  close: document.querySelector('#close-button'),
   menu: document.querySelector('#context-menu'),
+  refreshMenu: document.querySelector('#refresh-menu'),
+  pinMenu: document.querySelector('#pin-menu'),
+  quitMenu: document.querySelector('#quit-menu'),
 };
+
+let language = localStorage.getItem('codexQuotaLanguage') === 'en' ? 'en' : 'zh';
+let currentData = null;
+
+function copy() {
+  return translations[language];
+}
 
 function compact(value) {
   const number = Number(value) || 0;
@@ -18,22 +85,43 @@ function compact(value) {
   }).format(number);
 }
 
+function dateFormatter(options) {
+  return new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', options);
+}
+
 function formatReset(timestamp) {
-  if (!timestamp) return '重置时间暂未提供';
-  return `将于 ${new Intl.DateTimeFormat('zh-CN', {
-    month: 'numeric',
+  const text = copy();
+  if (!timestamp) return text.resetPending;
+  const value = dateFormatter({
+    month: 'short',
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date(timestamp * 1000))} 重置`;
+  }).format(new Date(timestamp * 1000));
+  return language === 'zh' ? `将于 ${value} 重置` : `Resets ${value}`;
 }
 
 function formatExpiry(timestamp) {
-  if (!timestamp) return '到期时间待官方返回';
-  return `将于 ${new Intl.DateTimeFormat('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
-  }).format(new Date(timestamp * 1000))} 到期`;
+  const text = copy();
+  if (!timestamp) return text.expiryPending;
+  const value = dateFormatter({ month: 'short', day: 'numeric' })
+    .format(new Date(timestamp * 1000));
+  return language === 'zh' ? `将于 ${value} 到期` : `Expires ${value}`;
+}
+
+function applyLanguage() {
+  const text = copy();
+  document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+  elements.panel.setAttribute('aria-label', text.panelLabel);
+  elements.language.textContent = language === 'zh' ? 'EN' : 'ZH';
+  elements.language.setAttribute('aria-label', language === 'zh' ? 'Switch to English' : '切换到中文');
+  elements.close.setAttribute('aria-label', text.closeLabel);
+  elements.weeklyTitle.textContent = text.weeklyLimit;
+  elements.resetHeading.textContent = text.resetCredits;
+  elements.tokenHeading.textContent = text.tokenUsage;
+  elements.totalLabel.textContent = text.totalToken;
+  elements.refreshMenu.textContent = text.refresh;
+  elements.quitMenu.textContent = text.quit;
 }
 
 function syncWindowHeight() {
@@ -44,6 +132,7 @@ function syncWindowHeight() {
 }
 
 function renderResetCards(credits, availableCount) {
+  const text = copy();
   const details = Array.isArray(credits) ? credits : [];
   const reportedCount = Number.isFinite(Number(availableCount))
     ? Math.max(0, Math.floor(Number(availableCount)))
@@ -51,20 +140,15 @@ function renderResetCards(credits, availableCount) {
   const rows = details.slice(0, reportedCount);
 
   while (rows.length < reportedCount) {
-    rows.push({
-      title: 'Full reset',
-      expiresAt: 0,
-      status: 'available',
-      detailPending: true,
-    });
+    rows.push({ title: 'Full reset', expiresAt: 0, status: 'available' });
   }
 
   elements.resetList.replaceChildren(...rows.map((credit) => {
     const card = document.createElement('article');
     card.className = 'card reset-card';
 
-    const copy = document.createElement('div');
-    copy.className = 'reset-copy';
+    const content = document.createElement('div');
+    content.className = 'reset-copy';
     const title = document.createElement('strong');
     title.textContent = credit.title || 'Full reset';
     const date = document.createElement('span');
@@ -72,40 +156,46 @@ function renderResetCards(credits, availableCount) {
 
     const badge = document.createElement('span');
     badge.className = 'reset-button';
-    badge.textContent = '可用';
-    badge.setAttribute('aria-label', '此额度重置可用');
+    badge.textContent = text.available;
+    badge.setAttribute('aria-label', text.availableLabel);
 
-    copy.append(title, date);
-    card.append(copy, badge);
+    content.append(title, date);
+    card.append(content, badge);
     return card;
   }));
 }
 
 function render(data) {
+  currentData = data;
+  const text = copy();
   const weekly = data.weekly;
   const remaining = weekly?.remainingPercent ?? 0;
-  const officialTokens = data.tokenSource === 'official'
-    || data.source === 'official-codex-app-server';
-  const tokenSource = officialTokens ? '官方同步' : '本机降级';
+  const sourceLabel = data.tokenSource === 'official-with-local-today'
+    ? text.officialAndLocal
+    : text.localOnly;
 
-  elements.weeklyReset.textContent = weekly
-    ? formatReset(weekly.resetsAt)
-    : '等待 Codex 官方限额数据';
-  elements.remaining.textContent = weekly ? `剩余 ${Math.round(remaining)}%` : '未同步';
+  elements.weeklyReset.textContent = weekly ? formatReset(weekly.resetsAt) : text.waiting;
+  elements.remaining.textContent = weekly
+    ? (language === 'zh' ? `剩余 ${Math.round(remaining)}%` : `${Math.round(remaining)}% left`)
+    : text.unsynced;
   elements.progress.style.width = `${remaining}%`;
-
+  elements.todayLabel.textContent = data.todayPeriod === 'yesterday'
+    ? text.yesterdayToken
+    : text.todayToken;
   elements.todayTokens.textContent = compact(data.today?.total);
   elements.totalTokens.textContent = compact(data.cumulative?.total);
 
   renderResetCards(data.resetCredits, data.resetCreditCount);
-  document.body.title = `${data.sourceLabel ?? 'Codex 数据'} · ${tokenSource}`;
+  document.body.title = `${data.sourceLabel ?? text.data} · ${sourceLabel}`;
   syncWindowHeight();
 }
 
 function renderError() {
-  elements.weeklyReset.textContent = 'Codex 官方数据暂不可用';
-  elements.remaining.textContent = '未同步';
+  const text = copy();
+  elements.weeklyReset.textContent = text.unavailable;
+  elements.remaining.textContent = text.unsynced;
   elements.progress.style.width = '0%';
+  elements.todayLabel.textContent = text.todayToken;
   elements.todayTokens.textContent = '—';
   elements.totalTokens.textContent = '—';
   renderResetCards([], 0);
@@ -124,6 +214,14 @@ function hideMenu() {
   elements.menu.hidden = true;
 }
 
+elements.language.addEventListener('click', () => {
+  language = language === 'zh' ? 'en' : 'zh';
+  localStorage.setItem('codexQuotaLanguage', language);
+  applyLanguage();
+  if (currentData) render(currentData);
+  else renderError();
+});
+
 elements.close.addEventListener('click', () => window.codexWidget.hide());
 document.addEventListener('keydown', (event) => {
   if (event.key === 'F5' || (event.ctrlKey && event.key.toLowerCase() === 'r')) {
@@ -135,8 +233,9 @@ document.addEventListener('keydown', (event) => {
 
 document.addEventListener('contextmenu', async (event) => {
   event.preventDefault();
-  const pin = elements.menu.querySelector('[data-action="pin"]');
-  pin.textContent = (await window.codexWidget.getAlwaysOnTop()) ? '取消置顶' : '始终置顶';
+  elements.pinMenu.textContent = (await window.codexWidget.getAlwaysOnTop())
+    ? copy().unpin
+    : copy().pin;
   elements.menu.hidden = false;
   const bounds = elements.menu.getBoundingClientRect();
   elements.menu.style.left = `${Math.max(8, Math.min(event.clientX, innerWidth - bounds.width - 8))}px`;
@@ -158,5 +257,6 @@ document.addEventListener('click', async (event) => {
   hideMenu();
 });
 
+applyLanguage();
 refresh();
 setInterval(refresh, 60_000);

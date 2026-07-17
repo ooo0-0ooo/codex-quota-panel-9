@@ -67,14 +67,39 @@ dialog { -webkit-app-region: no-drag; }
   cursor: pointer;
 }
 
+.language-button {
+  position: absolute;
+  z-index: 3;
+  top: 18px;
+  right: 62px;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 100px;
+  color: #555151;
+  background: #ededed;
+  box-shadow:
+    2px 3px 5px rgba(120, 120, 120, 0.25),
+    -2px -2px 4px rgba(255, 255, 255, 0.78);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  cursor: pointer;
+}
+
 .close-button img {
   width: 39px;
   height: 40px;
   pointer-events: none;
 }
 
-.close-button:hover { filter: brightness(0.97); }
-.close-button:active { transform: translateY(1px); }
+.close-button:hover,
+.language-button:hover { filter: brightness(0.97); }
+.close-button:active,
+.language-button:active { transform: translateY(1px); }
 
 .header-block {
   display: flex;

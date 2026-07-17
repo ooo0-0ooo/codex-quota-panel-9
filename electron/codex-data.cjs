@@ -12,6 +12,15 @@ function numberFrom(object, ...keys) {
 
 function usageFrom(info) {
   const usage = info?.total_token_usage ?? info?.totalTokenUsage;
+  return normalizeUsage(usage);
+}
+
+function lastUsageFrom(info) {
+  const usage = info?.last_token_usage ?? info?.lastTokenUsage;
+  return normalizeUsage(usage);
+}
+
+function normalizeUsage(usage) {
   if (!usage) return null;
   const input = numberFrom(usage, 'input_tokens', 'inputTokens');
   const cachedInput = numberFrom(usage, 'cached_input_tokens', 'cachedInputTokens');
@@ -101,7 +110,16 @@ async function collectCodexData(options = {}) {
     ?? path.join(os.homedir(), '.codex');
   const sessionsPath = path.join(codexHome, 'sessions');
   const files = await listJsonlFiles(sessionsPath);
-  const today = { input: 0, cachedInput: 0, output: 0, reasoning: 0, total: 0 };
+  const today = {
+    input: 0,
+    cachedInput: 0,
+    output: 0,
+    reasoning: 0,
+    total: 0,
+    events: 0,
+    available: false,
+    date: localDateKey(now),
+  };
   const cumulative = { input: 0, cachedInput: 0, output: 0, reasoning: 0, total: 0 };
   let latestRateLimits = null;
   let latestRateTimestamp = 0;
@@ -126,11 +144,18 @@ async function collectCodexData(options = {}) {
       if (payload?.type !== 'token_count') continue;
       const timestamp = Date.parse(record.timestamp ?? record.created_at ?? 0);
       const current = usageFrom(payload.info);
+      const last = lastUsageFrom(payload.info);
       if (current) {
         const delta = usageDelta(current, previous);
         addUsage(cumulative, delta);
-        if (isSameLocalDay(timestamp, now)) addUsage(today, delta);
+        if (isSameLocalDay(timestamp, now)) {
+          addUsage(today, last ?? delta);
+          today.events += 1;
+        }
         previous = current;
+      } else if (last && isSameLocalDay(timestamp, now)) {
+        addUsage(today, last);
+        today.events += 1;
       }
       if (payload.rate_limits && timestamp >= latestRateTimestamp) {
         latestRateLimits = payload.rate_limits;
@@ -141,6 +166,7 @@ async function collectCodexData(options = {}) {
 
   const windows = normalizeWindows(latestRateLimits);
   const weekly = windows[0] ?? null;
+  today.available = today.events > 0;
   return {
     source: 'local-codex-sessions',
     codexHome,
@@ -153,5 +179,11 @@ async function collectCodexData(options = {}) {
   };
 }
 
-module.exports = { collectCodexData, normalizeWindows, usageFrom };
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
+module.exports = { collectCodexData, lastUsageFrom, normalizeWindows, usageFrom };

@@ -25,6 +25,8 @@ async function getCodexData() {
       source: 'local-codex-sessions-fallback',
       sourceLabel: '本机日志降级',
       tokenSource: 'local',
+      todayPeriod: 'today',
+      todaySource: 'local-session-logs',
       resetCredits: [],
       resetCreditCount: 0,
       syncError: error.message,

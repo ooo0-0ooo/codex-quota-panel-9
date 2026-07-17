@@ -5,7 +5,9 @@ const path = require('node:path');
 const mockData = {
   source: 'official-codex-app-server',
   sourceLabel: 'OpenAI 官方账户',
-  tokenSource: 'official',
+  tokenSource: 'official-with-local-today',
+  todayPeriod: 'today',
+  todaySource: 'local-session-logs',
   weekly: {
     usedPercent: 13,
     remainingPercent: 87,
@@ -18,7 +20,7 @@ const mockData = {
     { title: 'Full reset', status: 'available', expiresAt: 1786482506 },
     { title: 'Full reset', status: 'available', expiresAt: 1786556074 },
   ],
-  today: { total: 958077 },
+  today: { total: 7135439 },
   cumulative: { total: 651705306 },
 };
 
@@ -47,18 +49,32 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      partition: 'codex-capture-1.3.0',
     },
   });
   await captureWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
+  captureWindow.showInactive();
   await new Promise((resolve) => setTimeout(resolve, 600));
   const title = await captureWindow.webContents.executeJavaScript(
     "document.querySelector('h1')?.textContent",
   );
   if (title !== 'Codex Quota') throw new Error('Renderer did not load');
   const image = await captureWindow.webContents.capturePage();
-  const output = path.join(__dirname, '..', 'outputs', 'ui-1.2.0.png');
+  const output = path.join(__dirname, '..', 'outputs', 'ui-1.3.0-zh.png');
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, image.toPNG());
   console.log(output);
+
+  await captureWindow.webContents.executeJavaScript(
+    "document.querySelector('#language-button')?.click()",
+  );
+  captureWindow.hide();
+  captureWindow.showInactive();
+  captureWindow.webContents.invalidate();
+  await new Promise((resolve) => setTimeout(resolve, 600));
+  const englishImage = await captureWindow.webContents.capturePage();
+  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.3.0-en.png');
+  await writeFile(englishOutput, englishImage.toPNG());
+  console.log(englishOutput);
   app.quit();
 });

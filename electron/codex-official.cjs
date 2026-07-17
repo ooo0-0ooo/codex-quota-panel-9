@@ -96,7 +96,7 @@ class CodexAppServerClient {
       clientInfo: {
         name: 'codex-quota-panel-9',
         title: 'Codex Quota Panel',
-        version: '1.2.0',
+        version: '1.3.0',
       },
       capabilities: {},
     });
@@ -235,10 +235,10 @@ function normalizeResetCredits(rateResult) {
   };
 }
 
-function usageDateKey(date) {
-  const year = date.getUTCFullYear();
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
+function localDateKey(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 }
 
@@ -253,10 +253,15 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
   const resetCredits = normalizeResetCredits(rateResult);
   const summary = usageResult?.summary ?? null;
   const dailyBuckets = usageResult?.dailyUsageBuckets ?? usageResult?.daily_usage_buckets ?? [];
-  const todayBucket = Array.isArray(dailyBuckets)
-    ? dailyBuckets.find((bucket) => (bucket.startDate ?? bucket.start_date) === usageDateKey(now))
-    : null;
-  const todayTokens = numberFrom(todayBucket, 'tokens');
+  const orderedBuckets = Array.isArray(dailyBuckets)
+    ? dailyBuckets
+      .filter((bucket) => bucket?.startDate ?? bucket?.start_date)
+      .toSorted((a, b) => String(a.startDate ?? a.start_date)
+        .localeCompare(String(b.startDate ?? b.start_date)))
+    : [];
+  const latestDailyBucket = orderedBuckets.at(-1) ?? null;
+  const latestDailyDate = latestDailyBucket?.startDate ?? latestDailyBucket?.start_date ?? null;
+  const latestDailyTokens = numberFrom(latestDailyBucket, 'tokens');
   const lifetimeTokens = numberFrom(summary, 'lifetimeTokens', 'lifetime_tokens');
   const usageAvailable = Boolean(usageResult && typeof usageResult === 'object');
 
@@ -269,7 +274,10 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
     limits: windows,
     resetCredits: resetCredits.credits,
     resetCreditCount: resetCredits.availableCount,
-    today: usageAvailable ? emptyTokenUsage(todayTokens ?? 0) : null,
+    today: usageAvailable ? emptyTokenUsage(latestDailyTokens ?? 0) : null,
+    todayDate: latestDailyDate,
+    todayPeriod: latestDailyDate === localDateKey(now) ? 'today' : 'yesterday',
+    todaySource: 'official-usage-bucket',
     cumulative: lifetimeTokens === null ? null : emptyTokenUsage(lifetimeTokens),
     usageSummary: summary,
     dailyUsageBuckets: Array.isArray(dailyBuckets) ? dailyBuckets : [],
@@ -277,16 +285,24 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
 }
 
 function mergeWithLocalFallback(official, local) {
+  const hasVerifiedLocalToday = Boolean(local?.today?.available);
   const merged = {
     ...local,
     ...official,
     weekly: official.weekly ?? local?.weekly ?? null,
     limits: official.limits?.length ? official.limits : (local?.limits ?? []),
-    today: official.today ?? local?.today ?? emptyTokenUsage(0),
+    today: hasVerifiedLocalToday
+      ? local.today
+      : (official.today ?? local?.today ?? emptyTokenUsage(0)),
     cumulative: official.cumulative ?? local?.cumulative ?? emptyTokenUsage(0),
     resetCredits: official.resetCredits ?? [],
     resetCreditCount: official.resetCreditCount ?? 0,
   };
+  merged.todayDate = hasVerifiedLocalToday ? local.today.date : official.todayDate;
+  merged.todayPeriod = hasVerifiedLocalToday ? 'today' : (official.todayPeriod ?? 'yesterday');
+  merged.todaySource = hasVerifiedLocalToday
+    ? 'local-session-logs'
+    : (official.todaySource ?? 'local-session-logs');
   const officialComplete = Boolean(official.weekly && official.today && official.cumulative);
   merged.source = officialComplete
     ? 'official-codex-app-server'
@@ -294,7 +310,7 @@ function mergeWithLocalFallback(official, local) {
   merged.sourceLabel = officialComplete
     ? 'OpenAI 官方账户'
     : '官方数据 + 本机降级';
-  merged.tokenSource = official.today && official.cumulative ? 'official' : 'local';
+  merged.tokenSource = official.cumulative ? 'official-with-local-today' : 'local';
   return merged;
 }
 
@@ -311,8 +327,15 @@ async function collectOfficialCodexData(client, options = {}) {
     usage.status === 'fulfilled' ? usage.value : null,
     options,
   );
-  if (official.weekly && official.today && official.cumulative) return official;
-  const local = options.localFallback ? await options.localFallback() : null;
+  let local = null;
+  if (options.localFallback) {
+    try {
+      local = await options.localFallback();
+    } catch {
+      // Official quota data should remain usable when local session logs
+      // are temporarily unavailable or malformed.
+    }
+  }
   return mergeWithLocalFallback(official, local);
 }
 

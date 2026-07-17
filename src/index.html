@@ -9,7 +9,8 @@
   </head>
   <body>
     <main class="quota-panel" aria-label="Codex 额度面板">
-      <button class="close-button no-drag" id="close-button" aria-label="隐藏到系统托盘">
+      <button class="language-button no-drag" id="language-button" type="button">EN</button>
+      <button class="close-button no-drag" id="close-button" type="button" aria-label="隐藏到系统托盘">
         <img src="./assets/close.svg" alt="" />
       </button>
 
@@ -17,7 +18,7 @@
         <h1 id="title">Codex Quota</h1>
         <article class="card weekly-card">
           <div class="quota-copy">
-            <strong>每周使用限额</strong>
+            <strong id="weekly-title">每周使用限额</strong>
             <span id="weekly-reset"></span>
           </div>
           <div class="progress-copy">
@@ -31,33 +32,29 @@
 
       <section class="columns">
         <div class="reset-column">
-          <h2>使用限额重置</h2>
+          <h2 id="reset-heading">使用限额重置</h2>
           <div class="reset-list" id="reset-list"></div>
         </div>
 
         <div class="token-column">
-          <h2>Token 用量</h2>
+          <h2 id="token-heading">Token 用量</h2>
           <div class="token-list">
             <article class="card token-card">
-              <span class="token-label">今日 Token</span>
-              <div class="token-line">
-                <strong id="today-tokens"></strong>
-              </div>
+              <span class="token-label" id="today-label">今日 Token</span>
+              <div class="token-line"><strong id="today-tokens"></strong></div>
             </article>
             <article class="card token-card">
-              <span class="token-label">累计 Token</span>
-              <div class="token-line">
-                <strong id="total-tokens"></strong>
-              </div>
+              <span class="token-label" id="total-label">累计 Token</span>
+              <div class="token-line"><strong id="total-tokens"></strong></div>
             </article>
           </div>
         </div>
       </section>
 
       <div class="context-menu no-drag" id="context-menu" role="menu" hidden>
-        <button data-action="refresh" role="menuitem">刷新真实数据</button>
-        <button data-action="pin" role="menuitem">取消置顶</button>
-        <button data-action="quit" role="menuitem">退出应用</button>
+        <button id="refresh-menu" data-action="refresh" role="menuitem">刷新真实数据</button>
+        <button id="pin-menu" data-action="pin" role="menuitem">取消置顶</button>
+        <button id="quit-menu" data-action="quit" role="menuitem">退出应用</button>
       </div>
     </main>
     <script type="module" src="./renderer.js"></script>
