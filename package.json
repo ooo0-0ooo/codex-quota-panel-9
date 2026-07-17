@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-panel-9",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A lightweight Windows desktop widget inspired by the Codex quota panel design.",
   "type": "module",
   "main": "electron/main.cjs",
@@ -11,7 +11,7 @@
     "start": "electron .",
     "dev": "electron .",
     "test": "node --test",
-    "build": "electron-builder --win nsis portable",
+    "build": "electron-builder --win nsis portable --publish never",
     "build:dir": "electron-builder --win dir"
   },
   "build": {
@@ -30,8 +30,7 @@
       "target": [
         "nsis",
         "portable"
-      ],
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      ]
     },
     "nsis": {
       "oneClick": false,
