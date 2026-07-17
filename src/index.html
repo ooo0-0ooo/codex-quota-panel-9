@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light" />
+    <title>Codex Quota Panel 9</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="quota-panel" aria-label="Codex 配额面板">
+      <button class="close-button no-drag" id="close-button" aria-label="隐藏到系统托盘">
+        <img src="./assets/close.png" alt="" />
+      </button>
+
+      <section class="header-block">
+        <h1 id="title" title="双击编辑数据">Codex Quota</h1>
+        <article class="card weekly-card">
+          <div class="quota-copy">
+            <strong>每周使用限额</strong>
+            <span id="weekly-reset"></span>
+          </div>
+          <div class="progress-copy">
+            <div class="progress-track" aria-hidden="true">
+              <div class="progress-value" id="progress-value"></div>
+            </div>
+            <span id="remaining"></span>
+          </div>
+        </article>
+      </section>
+
+      <section class="columns">
+        <div class="reset-column">
+          <h2>使用限额重置</h2>
+          <div class="reset-list" id="reset-list"></div>
+        </div>
+
+        <div class="token-column">
+          <h2>Token 用量</h2>
+          <div class="token-list">
+            <article class="card token-card">
+              <span class="token-label">今日 Token</span>
+              <div class="token-line">
+                <strong id="today-tokens"></strong>
+                <span id="today-cost"></span>
+              </div>
+            </article>
+            <article class="card token-card">
+              <span class="token-label">累计 Token</span>
+              <div class="token-line">
+                <strong id="total-tokens"></strong>
+                <span id="total-cost"></span>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <div class="context-menu no-drag" id="context-menu" role="menu" hidden>
+        <button data-action="refresh" role="menuitem">刷新真实数据</button>
+        <button data-action="pin" role="menuitem">取消置顶</button>
+        <button data-action="quit" role="menuitem">退出应用</button>
+      </div>
+    </main>
+    <script type="module" src="./renderer.js"></script>
+  </body>
+</html>
