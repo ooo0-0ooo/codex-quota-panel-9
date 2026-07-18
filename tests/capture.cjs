@@ -2,6 +2,8 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const { mkdir, writeFile } = require('node:fs/promises');
 const path = require('node:path');
 
+app.commandLine.appendSwitch('lang', 'zh-CN');
+
 const mockData = {
   source: 'official-codex-app-server',
   sourceLabel: 'OpenAI 官方账户',
@@ -49,7 +51,7 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      partition: 'codex-capture-1.3.0',
+      partition: 'codex-capture-1.4.0',
     },
   });
   await captureWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
@@ -59,22 +61,57 @@ app.whenReady().then(async () => {
     "document.querySelector('h1')?.textContent",
   );
   if (title !== 'Codex Quota') throw new Error('Renderer did not load');
+  const controlsMatch = await captureWindow.webContents.executeJavaScript(`
+    (() => {
+      const language = document.querySelector('#language-button').getBoundingClientRect();
+      const close = document.querySelector('#close-button').getBoundingClientRect();
+      return language.width === close.width && language.height === close.height;
+    })()
+  `);
+  if (!controlsMatch) throw new Error('Language and close controls must have matching dimensions');
   const image = await captureWindow.webContents.capturePage();
-  const output = path.join(__dirname, '..', 'outputs', 'ui-1.3.0-zh.png');
+  const output = path.join(__dirname, '..', 'outputs', 'ui-1.4.0-zh.png');
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, image.toPNG());
   console.log(output);
 
-  await captureWindow.webContents.executeJavaScript(
-    "document.querySelector('#language-button')?.click()",
-  );
+  mockData.resetCreditCount = 4;
+  mockData.resetCredits.push({
+    title: 'Full reset',
+    status: 'available',
+    expiresAt: 1787173200,
+  });
+  await captureWindow.webContents.executeJavaScript(`
+    document.querySelector('#language-button')?.click();
+    document.querySelector('[data-action="refresh"]')?.click();
+  `);
+  await new Promise((resolve) => setTimeout(resolve, 300));
   captureWindow.hide();
   captureWindow.showInactive();
   captureWindow.webContents.invalidate();
   await new Promise((resolve) => setTimeout(resolve, 600));
   const englishImage = await captureWindow.webContents.capturePage();
-  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.3.0-en.png');
+  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.4.0-en.png');
   await writeFile(englishOutput, englishImage.toPNG());
   console.log(englishOutput);
+  const wheelResult = await captureWindow.webContents.executeJavaScript(`
+    (() => {
+      const panel = document.querySelector('.quota-panel');
+      const list = document.querySelector('#reset-list');
+      const before = list.scrollTop;
+      panel.dispatchEvent(new WheelEvent('wheel', {
+        bubbles: true,
+        cancelable: true,
+        deltaY: 80,
+      }));
+      return { before, after: list.scrollTop };
+    })()
+  `);
+  if (wheelResult.after <= wheelResult.before) {
+    throw new Error('Panel wheel did not scroll the reset-credit list');
+  }
   app.quit();
+}).catch((error) => {
+  console.error(error);
+  app.exit(1);
 });

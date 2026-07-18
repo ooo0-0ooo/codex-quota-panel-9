@@ -70,15 +70,15 @@ dialog { -webkit-app-region: no-drag; }
 .language-button {
   position: absolute;
   z-index: 3;
-  top: 18px;
+  top: 12px;
   right: 62px;
   display: grid;
   place-items: center;
   width: 42px;
-  height: 30px;
+  height: 42px;
   padding: 0;
   border: 0;
-  border-radius: 100px;
+  border-radius: 50%;
   color: #555151;
   background: #ededed;
   box-shadow:
@@ -208,7 +208,7 @@ h2 {
 .token-column {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 
 .reset-list,
@@ -217,16 +217,42 @@ h2 {
   flex-direction: column;
 }
 
-.reset-list { gap: 14px; }
-.token-list { gap: 18px; }
+.reset-list,
+.token-list { gap: 12px; }
+
+.reset-list {
+  width: 248px;
+  overflow: visible;
+}
+
+.reset-list.is-scrollable {
+  width: 256px;
+  height: 234px;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  overscroll-behavior: contain;
+}
+
+.reset-list.is-scrollable::-webkit-scrollbar { width: 4px; }
+
+.reset-list.is-scrollable::-webkit-scrollbar-track {
+  margin-top: 35px;
+  background: transparent;
+}
+
+.reset-list.is-scrollable::-webkit-scrollbar-thumb {
+  border-radius: 100px;
+  background: #8a8a8a;
+}
 
 .reset-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex: 0 0 70px;
   width: 248px;
-  height: 76px;
-  padding: 16px 14px 16px 18px;
+  height: 70px;
+  padding: 14px 12px 14px 18px;
   box-shadow:
     0 7px 20px var(--shadow-soft),
     6px 6px 14px var(--shadow-dark),
@@ -284,8 +310,8 @@ h2 {
   flex-direction: column;
   gap: 8px;
   width: 232px;
-  height: 118px;
-  padding: 24px 20px;
+  height: 111px;
+  padding: 20px;
   box-shadow:
     0 11px 22px var(--shadow-soft),
     5px 7px 15px var(--shadow-dark),

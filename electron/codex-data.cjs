@@ -26,7 +26,7 @@ function normalizeUsage(usage) {
   const cachedInput = numberFrom(usage, 'cached_input_tokens', 'cachedInputTokens');
   const output = numberFrom(usage, 'output_tokens', 'outputTokens');
   const reasoning = numberFrom(usage, 'reasoning_output_tokens', 'reasoningOutputTokens');
-  const total = numberFrom(usage, 'total_tokens', 'totalTokens') || input + output + reasoning;
+  const total = numberFrom(usage, 'total_tokens', 'totalTokens') || input + output;
   return { input, cachedInput, output, reasoning, total };
 }
 
@@ -141,7 +141,7 @@ async function collectCodexData(options = {}) {
         continue;
       }
       const payload = record?.payload;
-      if (payload?.type !== 'token_count') continue;
+      if (record?.type !== 'event_msg' || payload?.type !== 'token_count') continue;
       const timestamp = Date.parse(record.timestamp ?? record.created_at ?? 0);
       const current = usageFrom(payload.info);
       const last = lastUsageFrom(payload.info);
@@ -149,7 +149,8 @@ async function collectCodexData(options = {}) {
         const delta = usageDelta(current, previous);
         addUsage(cumulative, delta);
         if (isSameLocalDay(timestamp, now)) {
-          addUsage(today, last ?? delta);
+          const counterReset = previous && current.total < previous.total;
+          addUsage(today, !previous || counterReset ? (last ?? delta) : delta);
           today.events += 1;
         }
         previous = current;

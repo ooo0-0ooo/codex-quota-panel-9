@@ -5,17 +5,17 @@ const translations = {
     weeklyLimit: '每周使用限额',
     resetCredits: '使用限额重置',
     tokenUsage: 'Token 用量',
-    todayToken: '今日 Token',
-    yesterdayToken: '昨日 Token',
-    totalToken: '累计 Token',
-    available: '可用',
-    availableLabel: '此额度重置可用',
+    todayToken: '今日用量',
+    yesterdayToken: '昨日用量',
+    totalToken: '累计用量',
+    useReset: '使用重置',
+    useResetLabel: '可用的额度重置',
     refresh: '刷新真实数据',
     pin: '始终置顶',
     unpin: '取消置顶',
     quit: '退出应用',
-    resetPending: '重置时间暂未提供',
-    expiryPending: '到期时间待官方返回',
+    resetPending: '重置日期暂未提供',
+    expiryPending: '到期日期待官方返回',
     waiting: '等待 Codex 官方限额数据',
     unavailable: 'Codex 官方数据暂不可用',
     unsynced: '未同步',
@@ -26,20 +26,20 @@ const translations = {
   en: {
     panelLabel: 'Codex quota panel',
     closeLabel: 'Hide to system tray',
-    weeklyLimit: 'Weekly limit',
-    resetCredits: 'Reset credits',
-    tokenUsage: 'Token usage',
-    todayToken: 'Today Token',
-    yesterdayToken: 'Yesterday Token',
-    totalToken: 'All-time Token',
-    available: 'Available',
-    availableLabel: 'This reset credit is available',
+    weeklyLimit: 'Weekly usage limit',
+    resetCredits: 'Usage limit resets',
+    tokenUsage: 'Token activity',
+    todayToken: 'Tokens used today',
+    yesterdayToken: 'Tokens used yesterday',
+    totalToken: 'Lifetime tokens',
+    useReset: 'Use reset',
+    useResetLabel: 'Available usage-limit reset',
     refresh: 'Refresh data',
     pin: 'Keep on top',
     unpin: 'Unpin',
     quit: 'Quit',
-    resetPending: 'Reset time unavailable',
-    expiryPending: 'Expiry pending',
+    resetPending: 'Reset date unavailable',
+    expiryPending: 'Expiry date unavailable',
     waiting: 'Waiting for Codex quota data',
     unavailable: 'Codex data is unavailable',
     unsynced: 'Not synced',
@@ -70,7 +70,13 @@ const elements = {
   quitMenu: document.querySelector('#quit-menu'),
 };
 
-let language = localStorage.getItem('codexQuotaLanguage') === 'en' ? 'en' : 'zh';
+const savedLanguage = localStorage.getItem('codexQuotaLanguage');
+const systemLanguage = (navigator.languages?.[0] ?? navigator.language ?? 'en')
+  .toLowerCase()
+  .startsWith('zh') ? 'zh' : 'en';
+let language = savedLanguage === 'zh' || savedLanguage === 'en'
+  ? savedLanguage
+  : systemLanguage;
 let currentData = null;
 
 function copy() {
@@ -85,27 +91,23 @@ function compact(value) {
   }).format(number);
 }
 
-function dateFormatter(options) {
-  return new Intl.DateTimeFormat(language === 'zh' ? 'zh-CN' : 'en-US', options);
+function monthDay(timestamp) {
+  const date = new Date(Number(timestamp) * 1000);
+  if (!Number.isFinite(date.getTime())) return null;
+  return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 
 function formatReset(timestamp) {
   const text = copy();
-  if (!timestamp) return text.resetPending;
-  const value = dateFormatter({
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(timestamp * 1000));
+  const value = monthDay(timestamp);
+  if (!value) return text.resetPending;
   return language === 'zh' ? `将于 ${value} 重置` : `Resets ${value}`;
 }
 
 function formatExpiry(timestamp) {
   const text = copy();
-  if (!timestamp) return text.expiryPending;
-  const value = dateFormatter({ month: 'short', day: 'numeric' })
-    .format(new Date(timestamp * 1000));
+  const value = monthDay(timestamp);
+  if (!value) return text.expiryPending;
   return language === 'zh' ? `将于 ${value} 到期` : `Expires ${value}`;
 }
 
@@ -117,7 +119,6 @@ function applyLanguage() {
   elements.language.setAttribute('aria-label', language === 'zh' ? 'Switch to English' : '切换到中文');
   elements.close.setAttribute('aria-label', text.closeLabel);
   elements.weeklyTitle.textContent = text.weeklyLimit;
-  elements.resetHeading.textContent = text.resetCredits;
   elements.tokenHeading.textContent = text.tokenUsage;
   elements.totalLabel.textContent = text.totalToken;
   elements.refreshMenu.textContent = text.refresh;
@@ -143,6 +144,9 @@ function renderResetCards(credits, availableCount) {
     rows.push({ title: 'Full reset', expiresAt: 0, status: 'available' });
   }
 
+  elements.resetHeading.textContent = `${text.resetCredits} (${reportedCount})`;
+  elements.resetList.classList.toggle('is-scrollable', rows.length > 3);
+  elements.resetList.scrollTop = 0;
   elements.resetList.replaceChildren(...rows.map((credit) => {
     const card = document.createElement('article');
     card.className = 'card reset-card';
@@ -156,8 +160,8 @@ function renderResetCards(credits, availableCount) {
 
     const badge = document.createElement('span');
     badge.className = 'reset-button';
-    badge.textContent = text.available;
-    badge.setAttribute('aria-label', text.availableLabel);
+    badge.textContent = text.useReset;
+    badge.setAttribute('aria-label', text.useResetLabel);
 
     content.append(title, date);
     card.append(content, badge);
@@ -221,6 +225,15 @@ elements.language.addEventListener('click', () => {
   if (currentData) render(currentData);
   else renderError();
 });
+
+elements.panel.addEventListener('wheel', (event) => {
+  if (!elements.resetList.classList.contains('is-scrollable')) return;
+  const maximum = elements.resetList.scrollHeight - elements.resetList.clientHeight;
+  if (maximum <= 0) return;
+  const before = elements.resetList.scrollTop;
+  elements.resetList.scrollTop = Math.max(0, Math.min(maximum, before + event.deltaY));
+  if (elements.resetList.scrollTop !== before) event.preventDefault();
+}, { passive: false });
 
 elements.close.addEventListener('click', () => window.codexWidget.hide());
 document.addEventListener('keydown', (event) => {

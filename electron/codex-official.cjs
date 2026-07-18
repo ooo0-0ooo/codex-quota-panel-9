@@ -96,7 +96,7 @@ class CodexAppServerClient {
       clientInfo: {
         name: 'codex-quota-panel-9',
         title: 'Codex Quota Panel',
-        version: '1.3.0',
+        version: '1.4.0',
       },
       capabilities: {},
     });
