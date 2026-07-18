@@ -13,7 +13,8 @@
 - 只有「使用重置 / Use reset」按钮可触发额度重置；二次确认后调用 Codex 官方重置接口进行额度重置
 - 系统托盘右键菜单支持显示面板、始终置顶、开机自启动和退出
 - 启动时立即更新，之后每 60 秒自动更新；也可按 `F5` 或在面板右键菜单中手动更新
-<img width="875" height="758" alt="image" src="https://github.com/user-attachments/assets/4110f079-7712-4708-97d9-895b8975b76a" />
+<img width="875" height="759" alt="image" src="https://github.com/user-attachments/assets/ed2ed2d1-a4f4-42b8-b993-e16f0215eb57" />
+
 
 
 ## 数据来源、取数方式和更新频率
