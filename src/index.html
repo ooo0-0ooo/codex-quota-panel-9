@@ -9,10 +9,15 @@
   </head>
   <body>
     <main class="quota-panel" aria-label="Codex 额度面板">
-      <button class="language-button no-drag" id="language-button" type="button">EN</button>
-      <button class="close-button no-drag" id="close-button" type="button" aria-label="隐藏到系统托盘">
-        <img src="./assets/close.svg" alt="" />
-      </button>
+      <div class="window-controls no-drag" aria-label="窗口控制">
+        <button class="window-control language-button" id="language-button" type="button">EN</button>
+        <button class="window-control icon-button" id="minimize-button" type="button" aria-label="最小化到任务栏">
+          <img src="./assets/minimize.svg" alt="" />
+        </button>
+        <button class="window-control icon-button" id="close-button" type="button" aria-label="隐藏到系统托盘">
+          <img src="./assets/close.svg" alt="" />
+        </button>
+      </div>
 
       <section class="header-block">
         <h1 id="title">Codex Quota</h1>
@@ -55,6 +60,16 @@
         <button id="refresh-menu" data-action="refresh" role="menuitem">刷新真实数据</button>
         <button id="pin-menu" data-action="pin" role="menuitem">取消置顶</button>
         <button id="quit-menu" data-action="quit" role="menuitem">退出应用</button>
+      </div>
+
+      <div class="confirm-overlay no-drag" id="confirm-overlay" hidden>
+        <section class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-message">
+          <p id="confirm-message">确定要使用这次重置吗？</p>
+          <div class="confirm-actions">
+            <button id="confirm-reset-button" type="button">使用重置</button>
+            <button id="cancel-reset-button" type="button">取消</button>
+          </div>
+        </section>
       </div>
     </main>
     <script type="module" src="./renderer.js"></script>

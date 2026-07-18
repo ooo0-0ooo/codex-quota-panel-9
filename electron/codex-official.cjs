@@ -96,9 +96,9 @@ class CodexAppServerClient {
       clientInfo: {
         name: 'codex-quota-panel-9',
         title: 'Codex Quota Panel',
-        version: '1.4.0',
+        version: '1.5.0',
       },
-      capabilities: {},
+      capabilities: { experimentalApi: true },
     });
     this.#write({ method: 'initialized' });
   }
@@ -286,21 +286,30 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
 
 function mergeWithLocalFallback(official, local) {
   const hasVerifiedLocalToday = Boolean(local?.today?.available);
+  const hasOfficialToday = Boolean(official.today && official.todayPeriod === 'today');
   const merged = {
     ...local,
     ...official,
     weekly: official.weekly ?? local?.weekly ?? null,
     limits: official.limits?.length ? official.limits : (local?.limits ?? []),
-    today: hasVerifiedLocalToday
+    today: hasOfficialToday
+      ? official.today
+      : hasVerifiedLocalToday
       ? local.today
       : (official.today ?? local?.today ?? emptyTokenUsage(0)),
     cumulative: official.cumulative ?? local?.cumulative ?? emptyTokenUsage(0),
     resetCredits: official.resetCredits ?? [],
     resetCreditCount: official.resetCreditCount ?? 0,
   };
-  merged.todayDate = hasVerifiedLocalToday ? local.today.date : official.todayDate;
-  merged.todayPeriod = hasVerifiedLocalToday ? 'today' : (official.todayPeriod ?? 'yesterday');
-  merged.todaySource = hasVerifiedLocalToday
+  merged.todayDate = hasOfficialToday
+    ? official.todayDate
+    : (hasVerifiedLocalToday ? local.today.date : official.todayDate);
+  merged.todayPeriod = hasOfficialToday
+    ? 'today'
+    : (hasVerifiedLocalToday ? 'today' : (official.todayPeriod ?? 'yesterday'));
+  merged.todaySource = hasOfficialToday
+    ? 'official-usage-bucket'
+    : hasVerifiedLocalToday
     ? 'local-session-logs'
     : (official.todaySource ?? 'local-session-logs');
   const officialComplete = Boolean(official.weekly && official.today && official.cumulative);
@@ -310,7 +319,9 @@ function mergeWithLocalFallback(official, local) {
   merged.sourceLabel = officialComplete
     ? 'OpenAI 官方账户'
     : '官方数据 + 本机降级';
-  merged.tokenSource = official.cumulative ? 'official-with-local-today' : 'local';
+  merged.tokenSource = hasOfficialToday
+    ? 'official'
+    : (official.cumulative ? 'official-with-local-today' : 'local');
   return merged;
 }
 
@@ -339,9 +350,21 @@ async function collectOfficialCodexData(client, options = {}) {
   return mergeWithLocalFallback(official, local);
 }
 
+async function consumeResetCredit(client, creditId, options = {}) {
+  if (typeof creditId !== 'string' || !creditId.trim() || creditId.length > 256) {
+    throw new TypeError('A valid reset-credit id is required');
+  }
+  const idempotencyKey = options.idempotencyKey ?? require('node:crypto').randomUUID();
+  return client.request('account/rateLimitResetCredit/consume', {
+    creditId,
+    idempotencyKey,
+  });
+}
+
 module.exports = {
   CodexAppServerClient,
   collectOfficialCodexData,
+  consumeResetCredit,
   findCodexBinary,
   normalizeOfficialData,
   normalizeResetCredits,

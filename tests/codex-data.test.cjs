@@ -4,7 +4,11 @@ const fs = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
 const { collectCodexData, normalizeWindows } = require('../electron/codex-data.cjs');
-const { collectOfficialCodexData, normalizeOfficialData } = require('../electron/codex-official.cjs');
+const {
+  collectOfficialCodexData,
+  consumeResetCredit,
+  normalizeOfficialData,
+} = require('../electron/codex-official.cjs');
 
 test('collectCodexData aggregates real token deltas without double counting snapshots', async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-widget-'));
@@ -53,6 +57,8 @@ test('collectCodexData includes today events appended to a session created on an
 
   assert.equal(data.today.total, 100);
   assert.equal(data.today.events, 1);
+  assert.equal(data.today.resumedSessionFiles, 1);
+  assert.equal(data.today.resumedSessionTokens, 100);
 });
 
 test('normalizeWindows returns the longest rate window first', () => {
@@ -101,6 +107,27 @@ test('normalizeOfficialData labels a delayed official daily bucket as yesterday'
   assert.equal(data.cumulative.total, 42);
 });
 
+test('consumeResetCredit calls the official endpoint with a card-specific id', async () => {
+  const calls = [];
+  const client = {
+    request(method, params) {
+      calls.push({ method, params });
+      return Promise.resolve({ outcome: { type: 'reset' } });
+    },
+  };
+  const result = await consumeResetCredit(client, 'credit-123', {
+    idempotencyKey: 'test-idempotency-key',
+  });
+  assert.equal(result.outcome.type, 'reset');
+  assert.deepEqual(calls, [{
+    method: 'account/rateLimitResetCredit/consume',
+    params: {
+      creditId: 'credit-123',
+      idempotencyKey: 'test-idempotency-key',
+    },
+  }]);
+});
+
 test('collectOfficialCodexData prefers verified local today while retaining official cumulative usage', async () => {
   const client = {
     request(method) {
@@ -125,4 +152,29 @@ test('collectOfficialCodexData prefers verified local today while retaining offi
   assert.equal(data.todayPeriod, 'today');
   assert.equal(data.todaySource, 'local-session-logs');
   assert.equal(data.cumulative.total, 42);
+});
+
+test('collectOfficialCodexData prefers an available official current-day bucket', async () => {
+  const client = {
+    request(method) {
+      if (method === 'account/rateLimits/read') {
+        return Promise.resolve({ rateLimits: { primary: { usedPercent: 20, windowDurationMins: 10080 } } });
+      }
+      return Promise.resolve({
+        summary: { lifetimeTokens: 1000 },
+        dailyUsageBuckets: [{ startDate: '2026-07-18', tokens: 250 }],
+      });
+    },
+  };
+  const data = await collectOfficialCodexData(client, {
+    now: new Date(2026, 6, 18, 12),
+    localFallback: async () => ({
+      today: { total: 30, events: 2, available: true, date: '2026-07-18' },
+      cumulative: { total: 30 },
+      limits: [],
+    }),
+  });
+  assert.equal(data.today.total, 250);
+  assert.equal(data.todaySource, 'official-usage-bucket');
+  assert.equal(data.tokenSource, 'official');
 });

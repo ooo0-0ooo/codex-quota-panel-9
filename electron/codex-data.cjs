@@ -117,6 +117,13 @@ async function collectCodexData(options = {}) {
     reasoning: 0,
     total: 0,
     events: 0,
+    countedEvents: 0,
+    duplicateSnapshots: 0,
+    sessionFiles: 0,
+    resumedSessionFiles: 0,
+    sameDayTokens: 0,
+    resumedSessionTokens: 0,
+    sessionDateBreakdown: {},
     available: false,
     date: localDateKey(now),
   };
@@ -132,6 +139,8 @@ async function collectCodexData(options = {}) {
       return;
     }
     let previous = null;
+    let fileTodayEvents = 0;
+    let fileTodayTokens = 0;
     for (const line of content.split(/\r?\n/)) {
       if (!line.includes('token_count')) continue;
       let record;
@@ -150,17 +159,41 @@ async function collectCodexData(options = {}) {
         addUsage(cumulative, delta);
         if (isSameLocalDay(timestamp, now)) {
           const counterReset = previous && current.total < previous.total;
-          addUsage(today, !previous || counterReset ? (last ?? delta) : delta);
+          const contribution = !previous || counterReset ? (last ?? delta) : delta;
+          addUsage(today, contribution);
           today.events += 1;
+          fileTodayEvents += 1;
+          fileTodayTokens += contribution.total;
+          if (contribution.total > 0) today.countedEvents += 1;
+          else today.duplicateSnapshots += 1;
         }
         previous = current;
       } else if (last && isSameLocalDay(timestamp, now)) {
         addUsage(today, last);
         today.events += 1;
+        today.countedEvents += 1;
+        fileTodayEvents += 1;
+        fileTodayTokens += last.total;
       }
       if (payload.rate_limits && timestamp >= latestRateTimestamp) {
         latestRateLimits = payload.rate_limits;
         latestRateTimestamp = timestamp;
+      }
+    }
+    if (fileTodayEvents > 0) {
+      today.sessionFiles += 1;
+      const relative = path.relative(sessionsPath, file).split(path.sep);
+      const fileDate = relative.length >= 3 ? relative.slice(0, 3).join('-') : '';
+      const bucket = today.sessionDateBreakdown[fileDate] ?? { files: 0, events: 0, tokens: 0 };
+      bucket.files += 1;
+      bucket.events += fileTodayEvents;
+      bucket.tokens += fileTodayTokens;
+      today.sessionDateBreakdown[fileDate] = bucket;
+      if (fileDate === today.date) {
+        today.sameDayTokens += fileTodayTokens;
+      } else {
+        today.resumedSessionFiles += 1;
+        today.resumedSessionTokens += fileTodayTokens;
       }
     }
   }));

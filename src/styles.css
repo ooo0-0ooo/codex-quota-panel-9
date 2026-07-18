@@ -51,55 +51,57 @@ button,
 input,
 dialog { -webkit-app-region: no-drag; }
 
-.close-button {
+.window-controls {
   position: absolute;
   z-index: 3;
-  top: 12px;
-  right: 12px;
+  top: 9px;
+  right: 9px;
+  display: flex;
+  align-items: center;
+  gap: 19px;
+}
+
+.window-control {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
   padding: 0;
   border: 0;
   border-radius: 50%;
-  background: transparent;
   cursor: pointer;
 }
 
 .language-button {
-  position: absolute;
-  z-index: 3;
-  top: 12px;
-  right: 62px;
-  display: grid;
-  place-items: center;
-  width: 42px;
-  height: 42px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  color: #555151;
-  background: #ededed;
+  color: #333;
+  background: rgba(235, 235, 235, 0.6);
   box-shadow:
-    2px 3px 5px rgba(120, 120, 120, 0.25),
-    -2px -2px 4px rgba(255, 255, 255, 0.78);
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
-  cursor: pointer;
+    3px 4px 7px rgba(120, 120, 120, 0.46),
+    -2px -2px 5px rgba(255, 255, 255, 0.72);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 10px;
 }
 
-.close-button img {
+.icon-button {
+  overflow: visible;
+  background: transparent;
+}
+
+.icon-button img {
+  position: absolute;
   width: 39px;
   height: 40px;
+  max-width: none;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
-.close-button:hover,
-.language-button:hover { filter: brightness(0.97); }
-.close-button:active,
-.language-button:active { transform: translateY(1px); }
+.window-control:hover { filter: brightness(0.97); }
+.window-control:active { transform: translateY(1px); }
 
 .header-block {
   display: flex;
@@ -294,6 +296,7 @@ h2 {
   height: 28px;
   margin-left: 12px;
   padding: 0 13px;
+  border: 0;
   border-radius: 100px;
   color: #555151;
   background: #ededed;
@@ -303,7 +306,12 @@ h2 {
   font-size: 12px;
   font-weight: 650;
   line-height: 16px;
+  cursor: pointer;
 }
+
+.reset-button:hover { filter: brightness(0.97); }
+.reset-button:active { transform: translateY(1px); }
+.reset-button:disabled { cursor: default; opacity: 0.55; }
 
 .token-card {
   display: flex;
@@ -371,6 +379,71 @@ h2 {
 }
 
 .context-menu button:hover { background: #e9e9e9; }
+
+.confirm-overlay {
+  position: fixed;
+  z-index: 20;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.confirm-overlay[hidden] { display: none; }
+
+.confirm-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 271px;
+  min-height: 106px;
+  padding: 19px 30px;
+  overflow: hidden;
+  border-radius: 15px;
+  background: linear-gradient(rgba(235, 235, 235, 0.6), rgba(235, 235, 235, 0.6)), #fff;
+  box-shadow:
+    0 7px 20px var(--shadow-soft),
+    7px 7px 18px var(--shadow-dark),
+    -7px -7px 15px var(--shadow-light);
+}
+
+.confirm-dialog p {
+  min-height: 19px;
+  padding-left: 4px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 19px;
+  white-space: nowrap;
+}
+
+.confirm-actions {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+}
+
+.confirm-actions button {
+  min-width: 78px;
+  height: 28px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 100px;
+  color: #555151;
+  background: #ededed;
+  box-shadow:
+    2px 3px 5px rgba(120, 120, 120, 0.25),
+    -2px -2px 4px rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 16px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.confirm-actions button:hover { filter: brightness(0.97); }
+.confirm-actions button:active { transform: translateY(1px); }
+.confirm-actions button:disabled { cursor: wait; opacity: 0.65; }
 
 :focus-visible {
   outline: 2px solid #555;
