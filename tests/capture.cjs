@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      partition: 'codex-capture-1.5.0',
+      partition: 'codex-capture-1.5.1',
     },
   });
   await captureWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
@@ -102,7 +102,7 @@ app.whenReady().then(async () => {
     throw new Error('Reset confirmation must open only from the reset button and consume once');
   }
   const image = await captureWindow.webContents.capturePage();
-  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.0-zh.png');
+  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.1-zh.png');
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, image.toPNG());
   console.log(output);
@@ -124,7 +124,7 @@ app.whenReady().then(async () => {
   captureWindow.webContents.invalidate();
   await new Promise((resolve) => setTimeout(resolve, 600));
   const englishImage = await captureWindow.webContents.capturePage();
-  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.0-en.png');
+  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.1-en.png');
   await writeFile(englishOutput, englishImage.toPNG());
   console.log(englishOutput);
   const wheelResult = await captureWindow.webContents.executeJavaScript(`

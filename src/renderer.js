@@ -68,6 +68,7 @@ const translations = {
 const elements = {
   panel: document.querySelector('.quota-panel'),
   language: document.querySelector('#language-button'),
+  languageIcon: document.querySelector('#language-icon'),
   minimize: document.querySelector('#minimize-button'),
   close: document.querySelector('#close-button'),
   weeklyTitle: document.querySelector('#weekly-title'),
@@ -145,7 +146,7 @@ function applyLanguage() {
   const text = copy();
   document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
   elements.panel.setAttribute('aria-label', text.panelLabel);
-  elements.language.textContent = language === 'zh' ? 'EN' : 'ZH';
+  elements.languageIcon.src = language === 'zh' ? './assets/language-en.svg' : './assets/language-zh.svg';
   elements.language.setAttribute('aria-label', language === 'zh' ? 'Switch to English' : '切换到中文');
   elements.minimize.setAttribute('aria-label', text.minimizeLabel);
   elements.close.setAttribute('aria-label', text.closeLabel);
