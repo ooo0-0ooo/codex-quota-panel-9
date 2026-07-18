@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-panel-9",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "description": "A Windows Codex quota panel synchronized through the official Codex app-server.",
   "type": "module",
   "main": "electron/main.cjs",

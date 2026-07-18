@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      partition: 'codex-capture-1.5.1',
+      partition: 'codex-capture-1.5.2',
     },
   });
   await captureWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
@@ -76,10 +76,14 @@ app.whenReady().then(async () => {
       const language = document.querySelector('#language-button').getBoundingClientRect();
       const minimize = document.querySelector('#minimize-button').getBoundingClientRect();
       const close = document.querySelector('#close-button').getBoundingClientRect();
-      return language.width === minimize.width
+      const centerY = (rect) => rect.top + rect.height / 2;
+      return Math.abs(language.width - 22) < 0.01
+        && language.width === minimize.width
         && language.width === close.width
         && language.height === minimize.height
-        && language.height === close.height;
+        && language.height === close.height
+        && Math.abs(centerY(language) - centerY(minimize)) < 0.01
+        && Math.abs(centerY(language) - centerY(close)) < 0.01;
     })()
   `);
   if (!controlsMatch) throw new Error('All three window controls must have matching dimensions');
@@ -102,7 +106,7 @@ app.whenReady().then(async () => {
     throw new Error('Reset confirmation must open only from the reset button and consume once');
   }
   const image = await captureWindow.webContents.capturePage();
-  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.1-zh.png');
+  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.2-zh.png');
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, image.toPNG());
   console.log(output);
@@ -124,7 +128,7 @@ app.whenReady().then(async () => {
   captureWindow.webContents.invalidate();
   await new Promise((resolve) => setTimeout(resolve, 600));
   const englishImage = await captureWindow.webContents.capturePage();
-  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.1-en.png');
+  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.2-en.png');
   await writeFile(englishOutput, englishImage.toPNG());
   console.log(englishOutput);
   const wheelResult = await captureWindow.webContents.executeJavaScript(`

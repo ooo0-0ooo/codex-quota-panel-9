@@ -52,21 +52,23 @@ input,
 dialog { -webkit-app-region: no-drag; }
 
 .window-controls {
+  --window-control-size: 22px;
+  --window-control-gap: 18.333px;
   position: absolute;
   z-index: 3;
   top: 9px;
   right: 9px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--window-control-gap);
 }
 
 .window-control {
   position: relative;
   display: block;
-  flex: 0 0 12px;
-  width: 12px;
-  height: 12px;
+  flex: 0 0 var(--window-control-size);
+  width: var(--window-control-size);
+  height: var(--window-control-size);
   padding: 0;
   border: 0;
   background: transparent;
@@ -76,11 +78,11 @@ dialog { -webkit-app-region: no-drag; }
 
 .window-control img {
   position: absolute;
-  top: -3.69995px;
-  left: -3.7002px;
+  top: -6.783px;
+  left: -6.784px;
   display: block;
-  width: 21px;
-  height: 22px;
+  width: 38.5px;
+  height: 40.333px;
   max-width: none;
   pointer-events: none;
 }
