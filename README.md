@@ -16,7 +16,7 @@ A Codex quota dashboard for Windows. It displays your official Codex weekly usag
 - System tray menu for showing the panel, keeping it always on top, starting with Windows, and quitting
 - Refreshes at launch and every 60 seconds; press `F5` or use the panel context menu to refresh manually
 
-<img width="875" height="758" alt="Codex Quota Panel" src="https://github.com/user-attachments/assets/4110f079-7712-4708-97d9-895b8975b76a" />
+<img width="875" height="759" alt="Codex Quota Panel" src="https://github.com/user-attachments/assets/ed2ed2d1-a4f4-42b8-b993-e16f0215eb57" />
 
 ## Data sources, collection, and refresh cadence
 
