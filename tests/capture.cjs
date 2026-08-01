@@ -10,9 +10,9 @@ app.disableHardwareAcceleration();
 const mockData = {
   source: 'official-codex-app-server',
   sourceLabel: 'OpenAI 官方账户',
-  tokenSource: 'official-with-local-today',
+  tokenSource: 'official',
   todayPeriod: 'today',
-  todaySource: 'local-session-logs',
+  todaySource: 'official-usage-bucket',
   weekly: {
     usedPercent: 13,
     remainingPercent: 87,
@@ -25,8 +25,8 @@ const mockData = {
     { id: 'reset-2', title: 'Full reset', status: 'available', expiresAt: 1786482506 },
     { id: 'reset-3', title: 'Full reset', status: 'available', expiresAt: 1786556074 },
   ],
-  today: { total: 7135439 },
-  cumulative: { total: 651705306 },
+  today: { total: 141206413 },
+  cumulative: { total: 1232139599 },
 };
 
 let captureWindow;
@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      partition: 'codex-capture-1.5.2',
+      partition: 'codex-capture-1.5.3',
     },
   });
   await captureWindow.loadFile(path.join(__dirname, '..', 'src', 'index.html'));
@@ -87,6 +87,17 @@ app.whenReady().then(async () => {
     })()
   `);
   if (!controlsMatch) throw new Error('All three window controls must have matching dimensions');
+  const usageRendering = await captureWindow.webContents.executeJavaScript(`
+    (() => ({
+      today: document.querySelector('#today-tokens')?.textContent,
+      total: document.querySelector('#total-tokens')?.textContent,
+      expiry: document.querySelector('.reset-copy span')?.textContent,
+    }))()
+  `);
+  if (usageRendering.today !== '141.2M' || usageRendering.total !== '1.23B'
+      || !/\d+\/\d+ \d{2}:\d{2}/.test(usageRendering.expiry ?? '')) {
+    throw new Error(`Usage or reset-expiry rendering is inaccurate: ${JSON.stringify(usageRendering)}`);
+  }
   const resetInteraction = await captureWindow.webContents.executeJavaScript(`
     (async () => {
       const card = document.querySelector('.reset-card');
@@ -106,7 +117,7 @@ app.whenReady().then(async () => {
     throw new Error('Reset confirmation must open only from the reset button and consume once');
   }
   const image = await captureWindow.webContents.capturePage();
-  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.2-zh.png');
+  const output = path.join(__dirname, '..', 'outputs', 'ui-1.5.3-zh.png');
   await mkdir(path.dirname(output), { recursive: true });
   await writeFile(output, image.toPNG());
   console.log(output);
@@ -128,7 +139,7 @@ app.whenReady().then(async () => {
   captureWindow.webContents.invalidate();
   await new Promise((resolve) => setTimeout(resolve, 600));
   const englishImage = await captureWindow.webContents.capturePage();
-  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.2-en.png');
+  const englishOutput = path.join(__dirname, '..', 'outputs', 'ui-1.5.3-en.png');
   await writeFile(englishOutput, englishImage.toPNG());
   console.log(englishOutput);
   const wheelResult = await captureWindow.webContents.executeJavaScript(`

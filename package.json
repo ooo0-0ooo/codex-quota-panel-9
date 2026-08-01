@@ -1,6 +1,6 @@
 {
   "name": "codex-quota-panel-9",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "A Windows Codex quota panel synchronized through the official Codex app-server.",
   "type": "module",
   "main": "electron/main.cjs",
@@ -36,10 +36,14 @@
       ]
     },
     "nsis": {
+      "artifactName": "Codex-Quota-Panel-v${version}-Setup.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "Codex-Quota-Panel-v${version}-Portable.${ext}"
     }
   },
   "devDependencies": {

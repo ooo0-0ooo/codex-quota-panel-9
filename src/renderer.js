@@ -1,3 +1,5 @@
+import { compactTokenCount } from './token-format.js';
+
 const translations = {
   zh: {
     panelLabel: 'Codex 额度面板',
@@ -106,20 +108,6 @@ function copy() {
   return translations[language];
 }
 
-function compact(value) {
-  const number = Number(value) || 0;
-  return new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(number);
-}
-
-function monthDay(timestamp) {
-  const date = new Date(Number(timestamp) * 1000);
-  if (!Number.isFinite(date.getTime())) return null;
-  return `${date.getMonth() + 1}/${date.getDate()}`;
-}
-
 function monthDayTime(timestamp) {
   const date = new Date(Number(timestamp) * 1000);
   if (!Number.isFinite(date.getTime())) return null;
@@ -137,7 +125,7 @@ function formatReset(timestamp) {
 
 function formatExpiry(timestamp) {
   const text = copy();
-  const value = monthDay(timestamp);
+  const value = monthDayTime(timestamp);
   if (!value) return text.expiryPending;
   return language === 'zh' ? `将于 ${value} 到期` : `Expires ${value}`;
 }
@@ -278,8 +266,8 @@ function render(data) {
   elements.todayLabel.textContent = data.todayPeriod === 'yesterday'
     ? text.yesterdayToken
     : text.todayToken;
-  elements.todayTokens.textContent = compact(data.today?.total);
-  elements.totalTokens.textContent = compact(data.cumulative?.total);
+  elements.todayTokens.textContent = compactTokenCount(data.today?.total);
+  elements.totalTokens.textContent = compactTokenCount(data.cumulative?.total);
 
   renderResetCards(data.resetCredits, data.resetCreditCount);
   document.body.title = `${data.sourceLabel ?? text.data} · ${sourceLabel}`;

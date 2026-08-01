@@ -96,7 +96,7 @@ class CodexAppServerClient {
       clientInfo: {
         name: 'codex-quota-panel-9',
         title: 'Codex Quota Panel',
-        version: '1.5.2',
+        version: '1.5.3',
       },
       capabilities: { experimentalApi: true },
     });
@@ -286,13 +286,13 @@ function normalizeOfficialData(rateResult, usageResult, options = {}) {
 
 function mergeWithLocalFallback(official, local) {
   const hasVerifiedLocalToday = Boolean(local?.today?.available);
-  const hasOfficialToday = Boolean(official.today && official.todayPeriod === 'today');
+  const hasOfficialUsage = official.tokenSource === 'official';
   const merged = {
     ...local,
     ...official,
     weekly: official.weekly ?? local?.weekly ?? null,
     limits: official.limits?.length ? official.limits : (local?.limits ?? []),
-    today: hasOfficialToday
+    today: hasOfficialUsage
       ? official.today
       : hasVerifiedLocalToday
       ? local.today
@@ -301,13 +301,13 @@ function mergeWithLocalFallback(official, local) {
     resetCredits: official.resetCredits ?? [],
     resetCreditCount: official.resetCreditCount ?? 0,
   };
-  merged.todayDate = hasOfficialToday
+  merged.todayDate = hasOfficialUsage
     ? official.todayDate
     : (hasVerifiedLocalToday ? local.today.date : official.todayDate);
-  merged.todayPeriod = hasOfficialToday
-    ? 'today'
+  merged.todayPeriod = hasOfficialUsage
+    ? official.todayPeriod
     : (hasVerifiedLocalToday ? 'today' : (official.todayPeriod ?? 'yesterday'));
-  merged.todaySource = hasOfficialToday
+  merged.todaySource = hasOfficialUsage
     ? 'official-usage-bucket'
     : hasVerifiedLocalToday
     ? 'local-session-logs'
@@ -319,9 +319,9 @@ function mergeWithLocalFallback(official, local) {
   merged.sourceLabel = officialComplete
     ? 'OpenAI 官方账户'
     : '官方数据 + 本机降级';
-  merged.tokenSource = hasOfficialToday
+  merged.tokenSource = hasOfficialUsage
     ? 'official'
-    : (official.cumulative ? 'official-with-local-today' : 'local');
+    : 'local';
   return merged;
 }
 

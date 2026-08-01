@@ -128,7 +128,7 @@ test('consumeResetCredit calls the official endpoint with a card-specific id', a
   }]);
 });
 
-test('collectOfficialCodexData prefers verified local today while retaining official cumulative usage', async () => {
+test('collectOfficialCodexData keeps a delayed official bucket instead of substituting local log totals', async () => {
   const client = {
     request(method) {
       if (method === 'account/rateLimits/read') {
@@ -148,10 +148,22 @@ test('collectOfficialCodexData prefers verified local today while retaining offi
       limits: [],
     }),
   });
-  assert.equal(data.today.total, 30);
-  assert.equal(data.todayPeriod, 'today');
-  assert.equal(data.todaySource, 'local-session-logs');
+  assert.equal(data.today.total, 10);
+  assert.equal(data.todayPeriod, 'yesterday');
+  assert.equal(data.todaySource, 'official-usage-bucket');
   assert.equal(data.cumulative.total, 42);
+  assert.equal(data.tokenSource, 'official');
+});
+
+test('normalizeOfficialData preserves the official July 30 and lifetime totals exactly', () => {
+  const data = normalizeOfficialData(null, {
+    summary: { lifetimeTokens: 1232139599, peakDailyTokens: 141206413 },
+    dailyUsageBuckets: [{ startDate: '2026-07-30', tokens: 141206413 }],
+  }, { now: new Date(2026, 6, 30, 18) });
+
+  assert.equal(data.today.total, 141206413);
+  assert.equal(data.todayPeriod, 'today');
+  assert.equal(data.cumulative.total, 1232139599);
 });
 
 test('collectOfficialCodexData prefers an available official current-day bucket', async () => {
