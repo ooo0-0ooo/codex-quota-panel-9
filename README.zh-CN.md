@@ -70,3 +70,8 @@ Windows 安装包和便携版会生成在 `dist/` 目录。
 ## 开源协议
 
 [MIT](./LICENSE)
+
+
+## 支持 / Sponsor
+
+如果这个项目对你有帮助，欢迎[通过加密货币支持我的工作](https://github.com/ooo0-0ooo/ooo0-0ooo/blob/main/SUPPORT.md)。赞赏完全自愿；转账前请核对页面标注的币种、网络和地址。
